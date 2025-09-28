@@ -5,14 +5,15 @@ import { midRank, reindexCollection, DEFAULT_STEP } from '@/lib/ranking';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const validatedData = MoveListSchema.parse(body);
     
     const db = await getDB();
-    const list = db.lists.find(l => l.id === params.id);
+    const list = db.lists.find(l => l.id === id);
     
     if (!list) {
       return NextResponse.json(

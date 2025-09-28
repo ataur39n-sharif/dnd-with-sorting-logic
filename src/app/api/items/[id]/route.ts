@@ -4,14 +4,15 @@ import { UpdateItemSchema } from '@/lib/schemas';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const validatedData = UpdateItemSchema.parse(body);
     
     const db = await getDB();
-    const itemIndex = db.items.findIndex(i => i.id === params.id);
+    const itemIndex = db.items.findIndex(i => i.id === id);
     
     if (itemIndex === -1) {
       return NextResponse.json(
@@ -41,11 +42,13 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const db = await getDB();
-    const itemIndex = db.items.findIndex(i => i.id === params.id);
+    
+    const itemIndex = db.items.findIndex(i => i.id === id);
     
     if (itemIndex === -1) {
       return NextResponse.json(

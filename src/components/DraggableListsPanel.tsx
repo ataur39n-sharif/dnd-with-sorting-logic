@@ -125,8 +125,7 @@ export function DraggableListsPanel({
   lists, 
   selectedListId, 
   onListSelect, 
-  onDataRefresh,
-  isLoading = false
+  onDataRefresh
 }: DraggableListsPanelProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -134,8 +133,6 @@ export function DraggableListsPanel({
   const [newListTitle, setNewListTitle] = useState('');
   const [editListTitle, setEditListTitle] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -188,7 +185,6 @@ export function DraggableListsPanel({
       return;
     }
 
-    setIsEditing(true);
     try {
       const response = await fetch(`/api/lists/${editingList.id}`, {
         method: 'PATCH',
@@ -212,13 +208,10 @@ export function DraggableListsPanel({
     } catch (error) {
       console.error('Error updating list:', error);
       toast.error('Failed to update list');
-    } finally {
-      setIsEditing(false);
     }
   };
 
   const handleDeleteList = async (list: ActionList) => {
-    setIsDeleting(list.id);
     try {
       const response = await fetch(`/api/lists/${list.id}`, {
         method: 'DELETE'
@@ -243,8 +236,6 @@ export function DraggableListsPanel({
     } catch (error) {
       console.error('Error deleting list:', error);
       toast.error('Failed to delete list');
-    } finally {
-      setIsDeleting(null);
     }
   };
 

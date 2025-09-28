@@ -115,9 +115,7 @@ function SortableItem({ item, onEdit, onDelete, isDeleting }: SortableItemProps)
 export function DraggableItemsPanel({ 
   items, 
   listId, 
-  onItemUpdate, 
-  onDataRefresh,
-  isLoading = false
+  onDataRefresh
 }: DraggableItemsPanelProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -160,7 +158,7 @@ export function DraggableItemsPanel({
         throw new Error('Failed to create item');
       }
 
-      const newItem = await response.json();
+      await response.json();
       toast.success('Item created successfully');
       
       setNewItemTitle('');

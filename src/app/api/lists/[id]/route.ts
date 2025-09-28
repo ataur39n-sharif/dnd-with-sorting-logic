@@ -4,14 +4,15 @@ import { UpdateListSchema } from '@/lib/schemas';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const validatedData = UpdateListSchema.parse(body);
     
     const db = await getDB();
-    const listIndex = db.lists.findIndex(l => l.id === params.id);
+    const listIndex = db.lists.findIndex(l => l.id === id);
     
     if (listIndex === -1) {
       return NextResponse.json(
@@ -41,11 +42,13 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const db = await getDB();
-    const listIndex = db.lists.findIndex(l => l.id === params.id);
+    
+    const listIndex = db.lists.findIndex(l => l.id === id);
     
     if (listIndex === -1) {
       return NextResponse.json(
@@ -58,7 +61,7 @@ export async function DELETE(
     db.lists.splice(listIndex, 1);
     
     // Remove all items in this list
-    db.items = db.items.filter(item => item.listId !== params.id);
+    db.items = db.items.filter(item => item.listId !== id);
 
     await saveDB(db);
 

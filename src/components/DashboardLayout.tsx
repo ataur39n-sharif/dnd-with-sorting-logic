@@ -10,11 +10,6 @@ export function DashboardLayout() {
   const { db, isLoading, error, updateLocalData, loadData } = useLocalDB();
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
 
-  // Get selected list
-  const selectedList = selectedListId 
-    ? db.lists.find(list => list.id === selectedListId) 
-    : null;
-
   // Get items for selected list
   const selectedItems = selectedListId 
     ? db.items.filter(item => item.listId === selectedListId)

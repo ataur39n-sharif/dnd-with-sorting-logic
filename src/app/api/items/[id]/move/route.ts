@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { revalidatePath } from 'next/cache';
 import { getDB, saveDB, getNeighbors } from '@/lib/db';
 import { MoveItemSchema } from '@/lib/schemas';
 import { midRank, reindexCollection, DEFAULT_STEP } from '@/lib/ranking';
