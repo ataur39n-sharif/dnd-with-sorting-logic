@@ -128,14 +128,112 @@ src/
 - `PATCH /api/items/[id]/move` - Reorder items
 - `DELETE /api/items/[id]` - Delete an item
 
-## 🧮 Sparse Ranking Algorithm
+## 🔧 Sparse Ranking Algorithm & Reordering Logic
 
-The application uses an efficient sparse ranking system:
+The application uses a sophisticated sparse ranking system for efficient drag-and-drop reordering. Here's how it works:
 
-- **Initial Ranks**: Items are spaced with gaps (1024, 2048, 3072...)
-- **Insertion**: New items get ranks between existing items
-- **Reindexing**: Automatic reindexing when gaps become too small
-- **Performance**: Minimizes database updates during reordering
+### 📊 **Core Ranking System**
+
+**Initial Ranks**: Items start with sparse ranks (1024, 2048, 3072...) to allow insertions
+```typescript
+// From src/lib/ranking.ts
+export const DEFAULT_STEP = 1024;
+
+export function initialRanks(n: number, step = DEFAULT_STEP): number[] {
+  return Array.from({ length: n }, (_, i) => (i + 1) * step);
+}
+```
+
+**Mid-Point Calculation**: New positions use the midpoint between neighbors
+```typescript
+export function midRank(left?: number | null, right?: number | null): number {
+  if (left == null && right == null) return step;        // First item
+  if (left == null) return Math.floor((right! - 1) / 2); // Insert at head
+  if (right == null) return left + step;                 // Insert at tail
+  const mid = Math.floor((left + right) / 2);
+  return mid > left && mid < right ? mid : Number.NaN;   // NaN = needs reindex
+}
+```
+
+### 🎯 **Client-Side Reordering Logic**
+
+**1. Drag Detection**: When a drag operation ends, both `DraggableListsPanel` and `DraggableItemsPanel` use identical logic:
+
+```typescript
+const handleDragEnd = async (event: DragEndEvent) => {
+  const { active, over } = event;
+  
+  if (over && active.id !== over.id) {
+    const oldIndex = items.findIndex((item) => item.id === active.id);
+    const newIndex = items.findIndex((item) => item.id === over.id);
+```
+
+**2. Array Reordering**: Uses `@dnd-kit/sortable`'s `arrayMove` for accurate positioning:
+```typescript
+// Use arrayMove to get the correct final order
+const reorderedItems = arrayMove(items, oldIndex, newIndex);
+
+// Find the new position of the moved item
+const finalIndex = reorderedItems.findIndex((item) => item.id === active.id);
+```
+
+**3. Neighbor Calculation**: Determines `beforeId` and `afterId` from final positions:
+```typescript
+let beforeId: string | undefined;
+let afterId: string | undefined;
+
+// Get neighbors from the final order
+if (finalIndex > 0) {
+  beforeId = reorderedItems[finalIndex - 1].id;
+}
+if (finalIndex < reorderedItems.length - 1) {
+  afterId = reorderedItems[finalIndex + 1].id;
+}
+```
+
+### 🚀 **Server-Side Processing**
+
+**1. API Endpoints**: 
+- Lists: `PATCH /api/lists/{id}/move`
+- Items: `PATCH /api/items/{id}/move`
+
+**2. Rank Calculation**: Server calculates new `orderRank` using sparse ranking:
+```typescript
+const { leftRank, rightRank } = await getNeighbors({
+  collection: 'lists',
+  beforeId: validatedData.beforeId,
+  afterId: validatedData.afterId
+});
+
+let newRank = midRank(leftRank, rightRank);
+```
+
+**3. Automatic Reindexing**: When ranks get too close, system reindexes:
+```typescript
+if (Number.isNaN(newRank)) {
+  // Reindex all items with proper spacing
+  const sortedItems = db.items.sort((a, b) => a.orderRank - b.orderRank);
+  reindexCollection(sortedItems, DEFAULT_STEP);
+  
+  // Recalculate with new spacing
+  newRank = midRank(newLeftRank, newRightRank);
+}
+```
+
+### 🔄 **Data Flow & State Management**
+
+**1. Optimistic Updates**: UI updates immediately for smooth UX
+**2. Server Sync**: API call updates server-side ranks
+**3. Data Refresh**: `onDataRefresh()` reloads data from server
+**4. Consistent Sorting**: Components sort by `orderRank` for consistent display
+
+### 🎪 **Why This Approach Works**
+
+- **Efficient**: O(1) insertions without shifting all items
+- **Scalable**: Handles thousands of items without performance issues  
+- **Reliable**: Automatic reindexing prevents rank collisions
+- **Smooth UX**: Optimistic updates provide immediate feedback
+- **Consistent**: Server-side validation ensures data integrity
 
 ## 🎨 Styling & Theming
 
